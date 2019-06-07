@@ -8,7 +8,9 @@ SET(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 SET(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
-
+# add neon
+add_definitions(-D__ARM_NEON)
+add_definitions("-mfloat-abi=hard -mfpu=neon")
 
 
 if(CMAKE_TOOLCHAIN_FILE)
@@ -85,6 +87,9 @@ else()
     # add_definitions(-flto)
     add_definitions(-fvisibility=hidden -fvisibility-inlines-hidden)
 endif()
+
+
+
 
 if(ANDROID)
     # disable shared library on android
