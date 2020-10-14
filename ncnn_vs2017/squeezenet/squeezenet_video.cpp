@@ -1,0 +1,142 @@
+#include <opencv2\opencv.hpp>
+#include <map>
+#include <vector>  
+#include <algorithm>  
+#include <functional>  
+#include <cstdlib> 
+#include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <net.h>
+
+#include <opencv2/opencv.hpp>
+
+#define  video true
+
+#define picture false
+
+
+
+using namespace cv;
+
+static int detect_squeezenet(const cv::Mat& bgr, std::vector<float>& cls_scores)
+{
+	ncnn::Net squeezenet;
+	squeezenet.load_param("D:/NCNN/ncnn/ncnn-master/examples/squeezenet_v1.1.param");
+	squeezenet.load_model("D:/NCNN/ncnn/ncnn-master/examples/squeezenet_v1.1.bin");
+
+	ncnn::Mat in = ncnn::Mat::from_pixels_resize(bgr.data, ncnn::Mat::PIXEL_BGR, bgr.cols, bgr.rows, 227, 227);
+
+	const float mean_vals[3] = { 104.f, 117.f, 123.f };
+	in.substract_mean_normalize(mean_vals, 0);
+
+	ncnn::Extractor ex = squeezenet.create_extractor();
+
+	ex.input("data", in);
+
+	ncnn::Mat out;
+	ex.extract("prob", out);
+
+	cls_scores.resize(out.w);
+	for (int j = 0; j < out.w; j++)
+	{
+		cls_scores[j] = out[j];
+	}
+
+	return 0;
+}
+
+static int print_topk(const std::vector<float>& cls_scores, int topk)
+{
+	// partial sort topk with index
+	int size = cls_scores.size();
+	std::vector< std::pair<float, int> > vec;
+	vec.resize(size);
+	for (int i = 0; i < size; i++)
+	{
+		vec[i] = std::make_pair(cls_scores[i], i);
+	}
+
+	std::partial_sort(vec.begin(), vec.begin() + topk, vec.end(),
+		std::greater< std::pair<float, int> >());
+
+	// print topk and score
+	for (int i = 0; i < topk; i++)
+	{
+		float score = vec[i].first;
+		int index = vec[i].second;
+		fprintf(stderr, "%d = %f\n", index, score);
+	}
+
+	return 0;
+}
+
+int main()
+{
+#if picture
+
+	std::string imagepath = "D://opencv//Projects//openc4.1_test//test.jpg";
+	cv::Mat m = cv::imread(imagepath, CV_LOAD_IMAGE_COLOR);
+	if (m.empty())
+	{
+		std::cout << "cv::imread " << imagepath << " failed\n" << std::endl;
+		return -1;
+	}
+
+	std::vector<float> cls_scores;
+	detect_squeezenet(m, cls_scores);
+
+	print_topk(cls_scores, 3);
+	waitKey(0);
+
+	return 0;
+
+#endif
+
+
+#if video
+
+	std::string videopath = "mvi_0050.avi";
+
+	VideoCapture capture;
+	capture.open(videopath);
+
+
+	if (!capture.isOpened())//判断是否打开视频文件
+
+	{
+		std::cout << "cv::imread " << videopath << " failed\n" << std::endl;
+		return -1;
+	}
+
+	else
+	{
+		while (true)
+		{
+			Mat frame;
+			capture >> frame;//读出每一帧的图像
+			if (frame.empty()) break;
+			imshow("处理前视频", frame);
+
+			std::vector<float> cls_scores;
+			detect_squeezenet(frame, cls_scores);
+			print_topk(cls_scores, 3);
+
+			//imshow("处理后视频", frame);
+			waitKey(1);
+
+		}
+	}
+
+	waitKey(0);
+	return 0;
+
+
+#endif
+
+
+
+
+
+}
+
