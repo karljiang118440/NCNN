@@ -24,6 +24,8 @@
 #include "gpu.h"
 #endif // NCNN_VULKAN
 
+using namespace std;
+
 struct Object
 {
     cv::Rect_<float> rect;
@@ -42,8 +44,8 @@ static int detect_mobilenet(const cv::Mat& bgr, std::vector<Object>& objects)
     // model is converted from https://github.com/chuanqi305/MobileNet-SSD
     // and can be downloaded from https://drive.google.com/open?id=0ByaKLD9QaPtucWk0Y0dha1VVY0U
     // the ncnn model https://github.com/nihui/ncnn-assets/tree/master/models
-    mobilenet.load_param("mobilenet_ssd_voc_ncnn.param");
-    mobilenet.load_model("mobilenet_ssd_voc_ncnn.bin");
+    mobilenet.load_param("../data/mobilenet_ssd_voc_ncnn.param");
+    mobilenet.load_model("../data/mobilenet_ssd_voc_ncnn.bin");
 
     const int target_size = 300;
 
@@ -131,11 +133,15 @@ static void draw_objects(const cv::Mat& bgr, const std::vector<Object>& objects)
 
 int main(int argc, char** argv)
 {
+
+    #if 0
+
     if (argc != 2)
     {
         fprintf(stderr, "Usage: %s [imagepath]\n", argv[0]);
         return -1;
     }
+
 
     const char* imagepath = argv[1];
 
@@ -146,18 +152,48 @@ int main(int argc, char** argv)
         return -1;
     }
 
+    #endif 
+
+    cv::VideoCapture cap("/media/jcq/Work/NXP/VisionSDK_S32V2_RTM_1_5_1/s32v234_sdk/demos/data/airunner/video_clips/university_traffic.avi");
+
+    if (!cap.isOpened())
+    {
+        //std::cout << "video is not open" << std::endl;
+        return -1;
+    }
+
+    cv::Mat frame;
+    //ncnn::Net mobilenet;
+
+    while(1){
+
+        cap >> frame;
+        
+        if(frame.empty()){
+            printf("vedio play finished \n");
+            break;
+        }
+
 #if NCNN_VULKAN
     ncnn::create_gpu_instance();
 #endif // NCNN_VULKAN
 
     std::vector<Object> objects;
-    detect_mobilenet(m, objects);
+
+    //detect_mobilenet(m, objects);
+    detect_mobilenet(frame, objects);
 
 #if NCNN_VULKAN
     ncnn::destroy_gpu_instance();
 #endif // NCNN_VULKAN
 
-    draw_objects(m, objects);
+    draw_objects(frame, objects);
 
-    return 0;
+    //return 0;
+
+
+    }
+
+
+
 }
