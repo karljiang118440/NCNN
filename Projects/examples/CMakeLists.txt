@@ -7,7 +7,6 @@ project (examples)
 
 
 set(ncnn_test_INCLUDE_DIRS /media/jcq/Soft/NCNN/ncnn/build-host-gcc-linux/install/include/ncnn)
-#set(ncnn_test_INCLUDE_DIRS /media/jcq/Soft/NCNN/ncnn/Projects/MobileNetSSD_NCNN/include)
 
 include_directories(
 	${ncnn_test_INCLUDE_DIRS} 
@@ -15,14 +14,20 @@ include_directories(
 )
 
 ### OpenCV的配置 ###
-set (OpenCV_DIR /usr)  
-find_package(OpenCV 2 REQUIRED)
+#set (OpenCV_DIR /usr) 
+
+#set (OpenCV_DIR /media/jcq/Soft/Opencv/opencv-3.4.2/build)
+#find_package(OpenCV 3 REQUIRED)
+
+
+
+set (OpenCV_DIR /media/jcq/Soft/Opencv/opencv-4.1.2/build)
+find_package(OpenCV 4 REQUIRED)
 
 add_executable (example mobilenetssd.cpp)
 
 
 set (NCNN_LIBS /media/jcq/Soft/NCNN/ncnn/build-host-gcc-linux/install/lib/libncnn.a)
-#set (NCNN_LIBS /media/jcq/Soft/NCNN/ncnn/Projects/MobileNetSSD_NCNN/libncnn.a)
 set (GOMP_LIB /usr/lib/x86_64-linux-gnu/libgomp.so.1)
 
 target_link_libraries( example
