@@ -1,4 +1,5 @@
 #include "net.h"
+#include"benchmark.h"
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -208,8 +209,8 @@ static int detect_nanodet(const cv::Mat & bgr, std::vector<Object> & objects)
 
 	// original pretrained model from https://github.com/RangiLyu/nanodet
 	// the ncnn model https://github.com/nihui/ncnn-assets/tree/master/models
-	nanodet.load_param("nanodet-hand.param");
-	nanodet.load_model("nanodet-hand.bin");
+	nanodet.load_param("../models/nanodet-hand.param");
+	nanodet.load_model("../models/nanodet-hand.bin");
 
 	int width = bgr.cols;
 	int height = bgr.rows;
@@ -365,24 +366,73 @@ static void draw_objects(const cv::Mat & bgr, const std::vector<Object> & object
 	}
 
 	cv::imshow("image", image);
-	cv::waitKey(0);
+	cv::waitKey(1);
 }
 
-int main(int argc, char** argv)
+
+int test_cam()
 {
 
-	const char* imagepath = "(638).jpg";
+    cv::Mat frame;
+    cv::VideoCapture cap(0);
 
-	cv::Mat m = cv::imread(imagepath, 1);
-	if (m.empty())
-	{
-		fprintf(stderr, "cv::imread %s failed\n", imagepath);
-		return -1;
-	}
+    while (true)
+    {
+        cap >> frame;
 
-	std::vector<Object> objects;
-	detect_nanodet(m, objects);
+        if(frame.empty())
+        {  
+            // fprintf("capture faild\n");
+            printf("capture faild\n");
+            return -1;
 
-	draw_objects(m, objects);
+        }
+
+		std::vector<Object> objects;
+
+        double start = ncnn::get_current_time();
+
+		
+        detect_nanodet(frame,objects);
+        draw_objects(frame,objects);
+
+        double end = ncnn::get_current_time();
+        double time = end - start;
+        printf("Time:%7.2f \n",time);
+        // cv::imshow("demo", frame);
+        // cv::waitKey(1);
+    }
+    return 0;
+
 
 }
+
+
+
+int main()
+{
+
+	test_cam();
+
+}
+
+
+
+// int main(int argc, char** argv)
+// {
+
+// 	const char* imagepath = "(638).jpg";
+
+// 	cv::Mat m = cv::imread(imagepath, 1);
+// 	if (m.empty())
+// 	{
+// 		fprintf(stderr, "cv::imread %s failed\n", imagepath);
+// 		return -1;
+// 	}
+
+// 	std::vector<Object> objects;
+// 	detect_nanodet(m, objects);
+
+// 	draw_objects(m, objects);
+
+// }
