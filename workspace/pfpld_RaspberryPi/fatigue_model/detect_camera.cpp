@@ -8,9 +8,14 @@
 
 #define _NCNN_PARAM False  // use ncnnoptimize tools to optimize models by karl:20210528
 
-using naspace std;
+using namespace std;
+using namespace cv;
 
 
+
+#include<algorithm>
+#include<iostream>
+#include<math.h>
 
 // list of source code updata:
 
@@ -36,28 +41,6 @@ karl:20210907
 */
 
 
-// inline static void stopwatch(bool start ,std::string verb = ""){
-
-// 	static auto startTime = std::chrono::high_resolution_clock::now();
-
-
-// 	if(start){
-// 		startTime = std::chrono::high_resolution_clock::now();		
-// 	}
-// 	else{
-// 		auto endTime = std::chrono::high_resoluiton_clock::now();
-// 		std::cout << "Time taken to" << verb << ":"
-// 		 << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).cout()
-// 		 << "milliseconds"
-// 		 <<std::endl;
-// 	}
-
-// 	float fps = 1.0 / std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).cout();
-// }
-
-
-
-
 
 
 
@@ -78,17 +61,22 @@ karl:20210907
 #define PERCLOS_THRESH 0.4
 #define BLINK_FREQ_MINUTE 9
 
+#define ScaleKarl 4
 
-double calcTwoNormIsEuclid(cv::Point p1, cv::Point p2);
-double eyeAspectRatio(std::vector<cv::Point> eye);
+
+double calcTwoNormIsEuclid(cv::Point2f p1 ,cv::Point2f p2);
+
+double eyeAspectRatio_98landmarks(std::vector<cv::Point2f> eye1);
+
 int round_double(double number);
 
 
-#define ScaleKarl 4
 
-string initstate = "STATE: ";
-string iniDriverState = "No Face Detected !"
-string deteDriverState = "Face Detected !"
+
+// string initstate = "STATE: ";
+string Initstate_dms = "STATE: ";
+string iniDriverState = "No Face Detected !";
+string deteDriverState = "Face Detected !";
 
 
 
@@ -164,7 +152,8 @@ int main() {
 
 */
 
-	std::vector<cv::Point> leftEye,rightEye;
+	std::vector<cv::Point2f>   leftEye,rightEye;
+	std::vector<cv::Point2f>   Eye; // 只需要定义 Eye 即可，不需要进行其他的操作。 --by karl:20210909
 
 
 //************************* end *********************//
@@ -186,7 +175,7 @@ int main() {
 	int criticalValue =0;
 
 
-
+		printf("line189 \n");
 
 
 
@@ -207,7 +196,7 @@ int main() {
 
 	cap >> img;
 
-	// cv::imshow("img", img);
+	cv::imshow("img", img);
 
 	ncnn::Mat input = ncnn::Mat::from_pixels_resize(img.data, ncnn::Mat::PIXEL_BGR2RGB, img.cols, img.rows, img.cols, img.rows);
 
@@ -312,7 +301,7 @@ int main() {
 		(unsigned char*)face_img.data,
 		ncnn::Mat::PIXEL_BGR2RGB, 112, 112);
 		float mean_vals[3] = {0.0, 0.0, 0.0};
-        	float norm_vals[3] = {1 / (float)255.0, 1 / (float)255.0, 1 / (float)255.0};
+        float norm_vals[3] = {1 / (float)255.0, 1 / (float)255.0, 1 / (float)255.0};
 		ncnn_img.substract_mean_normalize(mean_vals, norm_vals);
 		
 		ncnn::Extractor pfpld_ex = pfpld_net.create_extractor();
@@ -336,50 +325,72 @@ int main() {
             landmarks.push_back(tmp_x);
             landmarks.push_back(tmp_y);
             cv::circle(img, cv::Point((int)tmp_x, (int)tmp_y), 1, cv::Scalar(0,255,0), 1);
-			printf(" landms.w= %d \n",landms.w);
+
+			// printf("tmp_x = %f \n",tmp_x);
+			// printf("tmp_y = %f \n",tmp_y);
+
+
+			// // cv::Point tmp_point = cv::Point(tmp_x,tmp_y);
+			// cv::Point2f tmp_point = cv::Point2f(300.5,100.5);
+			// printf("x , y = %.3f , %.3f \n",tmp_point.x ,tmp_point.y);
+
+
+			// leftEye.push_back(cv::Point2f(tmp_x,tmp_y));
+			// printf(" line331:lefteye.x = %f \n",leftEye[1].x);
+			// printf(" line332:lefteye.y = %f \n",leftEye[1].y);
 
 
 	//1). extract left eye and right eye -- add by karl:20210907
+			// 提取Eye 信息  -- add by karl:20210909
+			Eye.push_back(cv::Point2f(tmp_x,tmp_y));
+			printf("x , y = %.3f , %.3f \n",Eye[1].x ,Eye[1].y);
+			printf("x , y = %.3f , %.3f \n",Eye[7].x ,Eye[7].y);
 
-			if(i >= 60  && i <= 67 ){
-				tmp_x = landms[2 * i] * size_w + x1 - left;
-				tmp_y = landms[2 * i + 1] * size_h + y1 -bottom;
-				leftEye.push_back(cv::Point(tmp_x,tmp_y));
-			}
 
-			if(i >= 68  && i <= 75 ){
-				tmp_x = landms[2 * i] * size_w + x1 - left;
-				tmp_y = landms[2 * i + 1] * size_h + y1 -bottom;				
-				rightEye.push_back(cv::Point(tmp_x,tmp_y));
-			}
+
+			// if(i >= 60  && i <= 67 ){
+			// 	tmp_x = landms[2 * i] * size_w + x1 - left;
+			// 	tmp_y = landms[2 * i + 1] * size_h + y1 -bottom;
+
+
+			// 	printf("tmp_y:line336 = %f \n",tmp_y);
+
+			// 	leftEye.push_back(cv::Point(tmp_x,tmp_y));
+
+				
+			// }
+
+			// if(i >= 68  && i <= 75 ){
+			// 	tmp_x = landms[2 * i] * size_w + x1 - left;
+			// 	tmp_y = landms[2 * i + 1] * size_h + y1 -bottom;				
+			// 	rightEye.push_back(cv::Point(tmp_x,tmp_y));
+			// }
+
+
+			// printf("rightEye = %f",rightEye[70].x);
+			// printf("rightEye:line351 = %f \n",rightEye[1]);
+			// printf("rightEye:line352 = %f \n",rightEye[70]);
+			// printf("rightEye:line353 = %f \n",rightEye);
 	//*******************end ********************//
-
 
 		}
 
 
-	//2). calculate eye aspect ratio -- add by karl:20210907
+	// 2). calculate eye aspect ratio -- add by karl:20210907
 
-		double leftEyeEar = eyeAspectRatio_98landmarks(leftEye);
-		double rightEyeEar = eyeAspectRatio_98landmarks(rightEye);
+		double leftEyeEar = eyeAspectRatio_98landmarks(Eye);
+		double rightEyeEar = eyeAspectRatio_98landmarks(Eye);
 
 		double avg_Ear = 0.5*(leftEyeEar + rightEyeEar);
 
 		printf("avg_Ear = %f \n", avg_Ear);
-
 
 		FILE *file_in = fopen("leftEyeEar.txt","a");
 		fprintf(file_in,"leftEyeEar: %.2f , rightEyeEar: %.2f,ratio: .2f \n",leftEyeEar,rightEyeEar,avg_Ear);
 		fclose(file_in);
 
 
-
-
-
-
-
-
-		// std::cout<<angles[0]<<"  "<<angles[1]<<"  "<<angles[2]<<std::endl;
+		std::cout<<angles[0]<<"  "<<angles[1]<<"  "<<angles[2]<<std::endl;
 		plot_pose_cube(img, angles[0], angles[1], angles[2], (int)result[i].pts[2].x, (int)result[i].pts[2].y, w / 2);
     }
 
@@ -387,30 +398,20 @@ int main() {
 
 
 
-
-
-
-
-
-
-
-
-
     cv::imshow("img", img);
 
+	// t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
 
-	t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
+	// fps = 1.0 /t;
 
-	fps = 1.0 /t;
+	// sprintf(string, "%.2f",fps);
 
-	sprintf(string, "%.2f",fps);
+	// std::string fpsString("FPS: ");
+	// fpsString += string;
 
-	std::string fpsString("FPS: ");
-	fpsString += string;
+	// printf("fps = %f \n", fps);
 
-	printf("fps = %f \n", fps);
-
-	cv::putText(img,fpsString,cv::Point(100,100),cv::FONT_HERSHEY_COMPLEX,0.5,cv::Scalar(100,0,0));
+	// cv::putText(img,fpsString,cv::Point(100,100),cv::FONT_HERSHEY_COMPLEX,0.5,cv::Scalar(100,0,0));
 
 
     if(cv::waitKey(20) > 0)
@@ -421,37 +422,88 @@ int main() {
 }
 
 
+
+
+
 }
 
 
 
 
-double eyeAspectRatio(std::vector<cv::Point> eye){
-
-	double short_axis_A = calcTwoNormIsEuclid(eye[5] , eye[1]);
-	double short_axis_B = calcTwoNormIsEuclid(eye[4] , eye[2]);
-	double long_axis_C = calcTwoNormIsEuclid(eye[3],eye[0]);
-	double calc_ear = (short_axis_A + short_axis_B) / (2.0 * long_axis_C);
-	return calc_ear;
-
-}
 
 
-double eyeAspectRatio_98landmarks(std::vector<cv::Point> eye){
 
-	double short_axis_A = calcTwoNormIsEuclid(eye[7] , eye[1]);
-	double short_axis_B = calcTwoNormIsEuclid(eye[6] , eye[2]);
-	double short_axis_C = calcTwoNormIsEuclid(eye[5] , eye[3]);
-	double long_axis_D = calcTwoNormIsEuclid(eye[4],  eye[0]);
+
+
+
+
+
+
+
+
+
+
+
+
+// double eyeAspectRatio(std::vector<cv::Point> eye){
+
+
+
+// 	double short_axis_A = calcTwoNormIsEuclid(eye[5] , eye[1]);
+
+// 	double short_axis_B = calcTwoNormIsEuclid(eye[4] , eye[2]);
+// 	double long_axis_C = calcTwoNormIsEuclid(eye[3],eye[0]);
+// 	double calc_ear = (short_axis_A + short_axis_B) / (2.0 * long_axis_C);
+// 	return calc_ear;
+
+// }
+
+
+
+double eyeAspectRatio_98landmarks(std::vector<cv::Point2f> eye1){
+
+
+
+
+			printf(" line440 \n");
+
+	// double short_axis_B = calcTwoNormIsEuclid(eye[6].y , eye[2].y);
+	// double short_axis_C = calcTwoNormIsEuclid(eye[5].y , eye[3].y);
+	// double long_axis_D = calcTwoNormIsEuclid(eye[4].x,  eye[0].x);
+
+
+	double short_axis_A = calcTwoNormIsEuclid(eye1[7] , eye1[1]);
+	double short_axis_B = calcTwoNormIsEuclid(eye1[6] , eye1[2]);
+	double short_axis_C = calcTwoNormIsEuclid(eye1[5] , eye1[3]);
+	double long_axis_D = calcTwoNormIsEuclid(eye1[4],  eye1[0]);
+
 	double calc_ear = (short_axis_A + short_axis_B + short_axis_C) / (3.0 * long_axis_D);
 	return calc_ear;
 
 }
 
-double calcTwoNormIsEuclid(cv::Point p1 ,cv::Point p2){
+double calcTwoNormIsEuclid(cv::Point2f p1 ,cv::Point2f p2){
 
+
+	printf(" line453 \n");
 	double dist;
-	dist = sqrt(pow(p2.x - p1.x),2) + pow((p2.y - p1.y),2);
+
+
+	// int x = p2.x - p1.x;
+	// int y = p2.y - p1.y;
+
+
+	// dist = sqrt(pow(x,2) + pow(y,2));
+
+
+	dist = sqrt(pow(int((p2.x - p1.x)),2) + pow(int((p2.y - p1.y)),2));	
+
+			printf(" line457 \n");
+
+
+	// dist = sqrt(pow(2,2) + pow(2,2));	
+
+
 	return  dist;
 }
 
@@ -460,188 +512,188 @@ double calcTwoNormIsEuclid(cv::Point p1 ,cv::Point p2){
 
 
 
-string doubleTwoRound(double dVal){
+// string doubleTwoRound(double dVal){
 
-	char buf_time[10];
-	sprintf(buf_time, "%.2f",dVal);
-	stringstream ss;
-	ss << buf_time;
-	return ss.str();
-}
+// 	char buf_time[10];
+// 	sprintf(buf_time, "%.2f",dVal);
+// 	stringstream ss;
+// 	ss << buf_time;
+// 	return ss.str();
+// }
 
-string getCurrentTime()
-{
-	time_t t = time(NULL);
-	char ch[64] = {0};
-}
+// string getCurrentTime()
+// {
+// 	time_t t = time(NULL);
+// 	char ch[64] = {0};
+// }
 
-cv::Mat scrollScreen(int fatigue,cv::Mat & temp){
+// cv::Mat scrollScreen(int fatigue,cv::Mat & temp){
 
-	char fatigue_path[200];
-
-
-	if(fatigue <= 4)
-	{
-		if (fatigue == 1){
-
-			if(flag_one == true){
-
-				sprintf(fatigue_path,fataguePara[0],getCurrentTime().c_str());
-				fa.push_back(fatigue_path);
-				flag_one = false;	
-			}
-			cv::putText(temp,fa[0],point_arr[0],CV_FONT_HERSHEY_SIMPLEX,FONT_SIZE_DIS,cv::Scalar(0,255,0),2);
-		}
-
-		else if(fatigue ==2){
-			if (flag_two == true){
-				sprintf(fatigue_path,fataguePara[1],getCurrentTime().c_str());
-				fa.push_back(fatigue_path);
-				flag_two = false;
-			}
-
-			for(unsigned int i=0;i < fa.size();i++){
-
-				if( i < fa.size() -1){
-
-					cv::putText(temp,fa[i],point_arr[i],CV_FONT_HERSHEY_SIMPLEX,FONT_SIZE_DIS,cv::Scalar(125,125,125),2);
-
-				}
-
-				else {
-					cv::putText(temp,fa[i],point_arr[i],CV_FONT_HERSHEY_SIMPLEX,FONT_SIZE_DIS,cv::Scalar(0,255,0),2);
-				}
-			}
-		}
-
-		else if (fatigue ==3)
-		{
-			if(flag_three == true)
-			{
-				sprintf(fatigue_path,fataguePara[2],getCurrentTime().c_str());
-				fa.push_back(fatigue_path);
-				flag_three =false;
-			}
-
-			for (unsigned int i=0;i< fa.size();i++)
-			{
-				if (i < fa.size() -1)
-				{
-					cv::putText(temp, fa[i], point_arr[i], CV_FONT_HERSHEY_SIMPLEX, FONT_SIZE_DIS, cv::Scalar(125, 125, 125), 2);
-				}
-				else
-				{
-					cv::putText(temp, fa[i], point_arr[i], CV_FONT_HERSHEY_SIMPLEX, FONT_SIZE_DIS, cv::Scalar(0, 255, 0), 2);
-				}
-			}
-		}
-
-		else if(fatigue == 4) 
-		{
-			if (flag_four == true )
-			{
-				sprintf(fatigue_path, fataguePara[3],getCurrentTime().c_str());
-				fa.push_back(fatigue_path);
-				flag_four = false;
-			}
-
-			for (unsigned int i=0;i < fa.size();i ++)
-			{
-				if ( i < fa.size() -1)
-				{
-					cv::putText(temp,fa[i],point_arr[i],CV_FONT_HERSHEY_SIMPLEX,FONT_SIZE_DIS,cv::Scalar(125,125,125),2);
-				}
-				else 
-				{
-					cv::putText(temp,fa[i],point_arr[i],CV_FONT_HERSHEY_SIMPLEX,FONT_SIZE_DIS,cv::Scalar(0,255,0),2);
-
-				}
-			}
-		}
-
-		if (karl_flag!=  fatigue)
-		{
-			flag_big = true;
-			tmp_display_fatigue = "";
-
-		}
-
-		if(flag_big == true)
-		{
-			for(unsigned int i=0;i <4;i++)
-			{
-				array2[i] = (array2[i] + 1) %4;
-			}
-
-			cout << "sizeof(array2) =" << sizeof(array2) << endl;
-
-			for(unsigned int i =0; i < 3; i++)
-			{
-				tmp_display_fatigue += fa[array2[i]];
-				tmp_display_fatigue += "\n";
-			}
-
-			sprintf( fatigue_path,"%s ; You have fatigued ! \n" , getCurrentTime().c_str());
-			tmp_display_fatigue + = fatigue_path;
-
-			fa.erase(fa.begin());
-			fa.push_back(fatigue_path);
-
-			flag_big = false;
-			karl_flag = fatigue;
-
-			for (unsigned int i=0;i<fa.size();i++)
-			{
-				cout << "fa[" << i << "] = " << fa[i] << endl;
-			}
-
-			cout << "come in : %d" << test_e5++ <<endl;
-			cout << "f = " << tmp_display_fatigue << endl;
-
-		}
+// 	char fatigue_path[200];
 
 
+// 	if(fatigue <= 4)
+// 	{
+// 		if (fatigue == 1){
 
-		std::vector<string> chara_string_spli = characterStingSplit(tmp_display_fatigue);
-		for (unsigned int i=0;i < chara_string_spli.size();i++)
-		{
-			if(i < chara_string_spli.size() -1)
-			{
-				cv::putText(temp,chara_string_spli[i],cv::Point(point_arr[0].x, point_arr[0].y + i* SCREEN_LINE_SEG),CV_FONT_HERSHEY_SIMPLEX,FONT_SIZE_DIS,cv::Scalar(125,125,125),2);
-			}
-			else
-			{
-				cv::putText(temp,chara_string_spli[i],cv::Point(point_arr[0].x,point_arr[0].y + i* SCREEN_LINE_SEG),CV_FONT_HERSHEY_SIMPLEX,FONT_SIZE_DIS,cv::Scalar(0,125,0),2);
-			}
+// 			if(flag_one == true){
+
+// 				sprintf(fatigue_path,fataguePara[0],getCurrentTime().c_str());
+// 				fa.push_back(fatigue_path);
+// 				flag_one = false;	
+// 			}
+// 			cv::putText(temp,fa[0],point_arr[0],CV_FONT_HERSHEY_SIMPLEX,FONT_SIZE_DIS,cv::Scalar(0,255,0),2);
+// 		}
+
+// 		else if(fatigue ==2){
+// 			if (flag_two == true){
+// 				sprintf(fatigue_path,fataguePara[1],getCurrentTime().c_str());
+// 				fa.push_back(fatigue_path);
+// 				flag_two = false;
+// 			}
+
+// 			for(unsigned int i=0;i < fa.size();i++){
+
+// 				if( i < fa.size() -1){
+
+// 					cv::putText(temp,fa[i],point_arr[i],CV_FONT_HERSHEY_SIMPLEX,FONT_SIZE_DIS,cv::Scalar(125,125,125),2);
+
+// 				}
+
+// 				else {
+// 					cv::putText(temp,fa[i],point_arr[i],CV_FONT_HERSHEY_SIMPLEX,FONT_SIZE_DIS,cv::Scalar(0,255,0),2);
+// 				}
+// 			}
+// 		}
+
+// 		else if (fatigue ==3)
+// 		{
+// 			if(flag_three == true)
+// 			{
+// 				sprintf(fatigue_path,fataguePara[2],getCurrentTime().c_str());
+// 				fa.push_back(fatigue_path);
+// 				flag_three =false;
+// 			}
+
+// 			for (unsigned int i=0;i< fa.size();i++)
+// 			{
+// 				if (i < fa.size() -1)
+// 				{
+// 					cv::putText(temp, fa[i], point_arr[i], CV_FONT_HERSHEY_SIMPLEX, FONT_SIZE_DIS, cv::Scalar(125, 125, 125), 2);
+// 				}
+// 				else
+// 				{
+// 					cv::putText(temp, fa[i], point_arr[i], CV_FONT_HERSHEY_SIMPLEX, FONT_SIZE_DIS, cv::Scalar(0, 255, 0), 2);
+// 				}
+// 			}
+// 		}
+
+// 		else if(fatigue == 4) 
+// 		{
+// 			if (flag_four == true )
+// 			{
+// 				sprintf(fatigue_path, fataguePara[3],getCurrentTime().c_str());
+// 				fa.push_back(fatigue_path);
+// 				flag_four = false;
+// 			}
+
+// 			for (unsigned int i=0;i < fa.size();i ++)
+// 			{
+// 				if ( i < fa.size() -1)
+// 				{
+// 					cv::putText(temp,fa[i],point_arr[i],CV_FONT_HERSHEY_SIMPLEX,FONT_SIZE_DIS,cv::Scalar(125,125,125),2);
+// 				}
+// 				else 
+// 				{
+// 					cv::putText(temp,fa[i],point_arr[i],CV_FONT_HERSHEY_SIMPLEX,FONT_SIZE_DIS,cv::Scalar(0,255,0),2);
+
+// 				}
+// 			}
+// 		}
+
+// 		if (karl_flag!=  fatigue)
+// 		{
+// 			flag_big = true;
+// 			tmp_display_fatigue = "";
+
+// 		}
+
+// 		if(flag_big == true)
+// 		{
+// 			for(unsigned int i=0;i <4;i++)
+// 			{
+// 				array2[i] = (array2[i] + 1) %4;
+// 			}
+
+// 			cout << "sizeof(array2) =" << sizeof(array2) << endl;
+
+// 			for(unsigned int i =0; i < 3; i++)
+// 			{
+// 				tmp_display_fatigue += fa[array2[i]];
+// 				tmp_display_fatigue += "\n";
+// 			}
+
+// 			sprintf( fatigue_path,"%s ; You have fatigued ! \n" , getCurrentTime().c_str());
+// 			tmp_display_fatigue + = fatigue_path;
+
+// 			fa.erase(fa.begin());
+// 			fa.push_back(fatigue_path);
+
+// 			flag_big = false;
+// 			karl_flag = fatigue;
+
+// 			for (unsigned int i=0;i<fa.size();i++)
+// 			{
+// 				cout << "fa[" << i << "] = " << fa[i] << endl;
+// 			}
+
+// 			cout << "come in : %d" << test_e5++ <<endl;
+// 			cout << "f = " << tmp_display_fatigue << endl;
+
+// 		}
+
+
+
+// 		std::vector<string> chara_string_spli = characterStingSplit(tmp_display_fatigue);
+// 		for (unsigned int i=0;i < chara_string_spli.size();i++)
+// 		{
+// 			if(i < chara_string_spli.size() -1)
+// 			{
+// 				cv::putText(temp,chara_string_spli[i],cv::Point(point_arr[0].x, point_arr[0].y + i* SCREEN_LINE_SEG),CV_FONT_HERSHEY_SIMPLEX,FONT_SIZE_DIS,cv::Scalar(125,125,125),2);
+// 			}
+// 			else
+// 			{
+// 				cv::putText(temp,chara_string_spli[i],cv::Point(point_arr[0].x,point_arr[0].y + i* SCREEN_LINE_SEG),CV_FONT_HERSHEY_SIMPLEX,FONT_SIZE_DIS,cv::Scalar(0,125,0),2);
+// 			}
 			
-		}
+// 		}
 
 		
-	}
+// 	}
 
-	return temp;
-
-
-}
+// 	return temp;
 
 
-std::vector<string> characterStingSplit(string pend_string)
-{
+// }
 
-	std::vector<string> stor_split_string;
 
-	char *dd_p = const_cast<char*> (pend_string.c_str());
-	const char * split ="\n";
-	char *p;
+// std::vector<string> characterStingSplit(string pend_string)
+// {
 
-	p = strtok(dd_p , split);
-	while(p! = NULL)
-	{
-		stor_split_string.push_back(p);
-		p = strtok(NULL,split);
-	}
-	return stor_split_string;
-}
+// 	std::vector<string> stor_split_string;
+
+// 	char *dd_p = const_cast<char*> (pend_string.c_str());
+// 	const char * split ="\n";
+// 	char *p;
+
+// 	p = strtok(dd_p , split);
+// 	while(p! = NULL)
+// 	{
+// 		stor_split_string.push_back(p);
+// 		p = strtok(NULL,split);
+// 	}
+// 	return stor_split_string;
+// }
 
 
 
