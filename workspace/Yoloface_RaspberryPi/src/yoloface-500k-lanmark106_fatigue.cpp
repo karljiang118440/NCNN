@@ -11,6 +11,23 @@
 #include <vector>
 #include <algorithm>
 
+
+
+
+double calcTwoNormIsEuclid(cv::Point2f p1 ,cv::Point2f p2);
+
+double eyeAspectRatio_106landmarks_avg(std::vector<cv::Point2f> eye1);
+double eyeAspectRatio_106landmarks_max(std::vector<cv::Point2f> eye1);
+
+
+
+
+
+
+
+
+
+
 int runlandmark(cv::Mat& roi, cv::Mat& image, ncnn::Net &landmark, int landmark_size_width, int landmark_size_height, float x1, float y1)
 {
     int w = roi.cols;
@@ -31,7 +48,14 @@ int runlandmark(cv::Mat& roi, cv::Mat& image, ncnn::Net &landmark, int landmark_
     float sw, sh;
 	sw = (float)w/(float)landmark_size_width;
 	sh = (float)h/(float)landmark_size_width;
-    
+
+
+
+
+    std::vector<cv::Point2f>   Eye; 
+
+
+
     for (int i = 0; i < 106; i++)
     {
         float px,py;
@@ -39,6 +63,31 @@ int runlandmark(cv::Mat& roi, cv::Mat& image, ncnn::Net &landmark, int landmark_
         py = out[i*2+1]*landmark_size_width*sh+y1;
 	    //画实心点
 	    cv::circle(image, cv::Point(px, py), 1, cv::Scalar(255,255,255),-1);
+
+
+
+        cv::putText(image,std::to_string(i),cv::Point(px,py),cv::FONT_HERSHEY_PLAIN,1,cv::Scalar(255,255,0));
+
+
+
+
+
+
+		Eye.push_back(cv::Point2f(px,py));
+
+
+		double leftEyeEar = eyeAspectRatio_106landmarks_max(Eye);
+		double rightEyeEar = eyeAspectRatio_106landmarks_avg(Eye);
+
+		double avg_Ear = 0.5*(leftEyeEar + rightEyeEar);
+
+		printf("avg_Ear = %f \n", avg_Ear);
+
+		FILE *file_in = fopen("leftEyeEar.txt","a");
+		fprintf(file_in,"leftEyeEar: %.2f , rightEyeEar: %.2f,  ratio: %.2f\n",leftEyeEar,rightEyeEar,avg_Ear);
+		fclose(file_in);
+
+
     }
 
     return 0;
@@ -120,20 +169,32 @@ int test_cam()
 {
     //定义yoloface-500k人脸检测器
     ncnn::Net detector;  
-    detector.load_param("/home/pi/Downloads/LiveFaceReco_20210315/models/yoloface/yoloface-500k.param");
-    detector.load_model("/home/pi/Downloads/LiveFaceReco_20210315/models/yoloface/yoloface-500k.bin");
+
+    detector.load_param("../models/yolo/yoloface-500k.param");
+    detector.load_model("../models/yolo/yoloface-500k.bin");
+
+
     int detector_size_width  = 320;
     int detector_size_height = 256;
 
+
+
+
     //定义106关键点预测器
     ncnn::Net landmark;  
-    landmark.load_param("/home/pi/Downloads/LiveFaceReco_20210315/models/yoloface/landmark106.param");
-    landmark.load_model("/home/pi/Downloads/LiveFaceReco_20210315/models/yoloface/landmark106.bin");
+    landmark.load_param("../models/yolo/landmark106.param");
+    landmark.load_model("../models/yolo/landmark106.bin");
     int landmark_size_width  =  112;
     int landmark_size_height =  112;
 
     cv::Mat frame;
     cv::VideoCapture cap(0);
+
+
+
+
+
+
 
     while (true)
     {
@@ -145,6 +206,7 @@ int test_cam()
         double time = end - start;
         printf("Time:%7.2f \n",time);
         cv::imshow("demo", frame);
+        // cv::imwrite("test.jpg",frame);
         cv::waitKey(1);
     }
     return 0;
@@ -153,4 +215,53 @@ int main()
 {
     test_cam();
     return 0;
+}
+
+
+double calcTwoNormIsEuclid(cv::Point2f p1 ,cv::Point2f p2){
+
+	double dist;
+
+
+	// int x = p2.x - p1.x;
+	// int y = p2.y - p1.y;
+
+
+	// dist = sqrt(pow(x,2) + pow(y,2));
+
+
+	dist = sqrt(pow(int((p2.x - p1.x)),2) + pow(int((p2.y - p1.y)),2));	
+
+	printf(" X =%d ,Y =%d \n",int((p2.x - p1.x)),int((p2.y - p1.y)));
+
+
+	// dist = sqrt(pow(2,2) + pow(2,2));	
+
+
+	return  dist;
+}
+
+
+
+double eyeAspectRatio_106landmarks_avg(std::vector<cv::Point2f> eye1){
+
+	double short_axis_A = calcTwoNormIsEuclid(eye1[53] , eye1[57]);
+	// double short_axis_B = calcTwoNormIsEuclid(eye1[4] , eye1[35]);
+	double short_axis_C = calcTwoNormIsEuclid(eye1[54] , eye1[56]);
+	double long_axis_D = calcTwoNormIsEuclid(eye1[52],  eye1[55]);
+	// double calc_ear = (short_axis_A + short_axis_B + short_axis_C) / (2.0 * long_axis_D);
+    double calc_ear = (short_axis_A  + short_axis_C) / (2.0 * long_axis_D);
+	return calc_ear;
+}
+
+
+double eyeAspectRatio_106landmarks_max(std::vector<cv::Point2f> eye1){
+
+	// double short_axis_A = calcTwoNormIsEuclid(eye1[7] , eye1[1]);
+	double short_axis_B = calcTwoNormIsEuclid(eye1[72] , eye1[73]);
+	// double short_axis_C = calcTwoNormIsEuclid(eye1[5] , eye1[3]);
+	double long_axis_D = calcTwoNormIsEuclid(eye1[52],  eye1[55]);
+	// double calc_ear = (short_axis_A + short_axis_B + short_axis_C) / (3.0 * long_axis_D);
+	double calc_ear = short_axis_B/ long_axis_D;
+	return calc_ear;
 }
