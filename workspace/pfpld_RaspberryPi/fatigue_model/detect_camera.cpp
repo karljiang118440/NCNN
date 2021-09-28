@@ -68,6 +68,8 @@ double calcTwoNormIsEuclid(cv::Point2f p1 ,cv::Point2f p2);
 
 double eyeAspectRatio_98landmarks(std::vector<cv::Point2f> eye1);
 
+double eyeAspectRatio_98landmarks_1(std::vector<cv::Point2f> eye1);
+
 int round_double(double number);
 
 
@@ -110,9 +112,14 @@ int main() {
 
 	std::string param_path =  "../models/pfpld/scrfd_500m-opt2.param";
 	std::string bin_path = "../models/pfpld/scrfd_500m-opt2.bin";
-	std::string pfpld_path = "../models/pfpld/pfpld.ncnnmodel";
 
 
+	// std::string pfpld_path = "../models/pfpld/pfpld.ncnnmodel";
+
+	// std::string param_path =  "../models/pfpld/checkpoint_robust_sim-opt-fp16.param";
+	// std::string bin_path = "../models/pfpld/checkpoint_robust_sim-opt-fp16.bin";
+
+	std::string pfpld_path = "../models/pfpld/roubust.ncnnmodel";
 
 
 
@@ -316,9 +323,9 @@ int main() {
             angles.push_back(tmp_angle);
 		}
 		
-		// for (int j=0; j<landms.w / 2; j++)
+		for (int j=0; j<landms.w / 2; j++)
 		
-		for ( int j=60; j<95; j++) // 仅显示人眼睛和嘴巴的关键点部位 --add by karl:20210901
+		// for ( int j=60; j<95; j++) // 仅显示人眼睛和嘴巴的关键点部位 --add by karl:20210901
 		{
             float tmp_x = landms[2 * j] * size_w + x1 - left;
             float tmp_y = landms[2 * j + 1] * size_h + y1 -bottom;
@@ -378,8 +385,11 @@ int main() {
 
 	// 2). calculate eye aspect ratio -- add by karl:20210907
 
-		double leftEyeEar = eyeAspectRatio_98landmarks(Eye);
-		double rightEyeEar = eyeAspectRatio_98landmarks(Eye);
+		// double leftEyeEar = eyeAspectRatio_98landmarks(Eye);
+		// double rightEyeEar = eyeAspectRatio_98landmarks(Eye);
+
+		double leftEyeEar = eyeAspectRatio_98landmarks_1(Eye);
+		double rightEyeEar = eyeAspectRatio_98landmarks_1(Eye);
 
 		double avg_Ear = 0.5*(leftEyeEar + rightEyeEar);
 
@@ -462,30 +472,28 @@ int main() {
 
 double eyeAspectRatio_98landmarks(std::vector<cv::Point2f> eye1){
 
-
-
-
-			printf(" line440 \n");
-
-	// double short_axis_B = calcTwoNormIsEuclid(eye[6].y , eye[2].y);
-	// double short_axis_C = calcTwoNormIsEuclid(eye[5].y , eye[3].y);
-	// double long_axis_D = calcTwoNormIsEuclid(eye[4].x,  eye[0].x);
-
-
 	double short_axis_A = calcTwoNormIsEuclid(eye1[7] , eye1[1]);
 	double short_axis_B = calcTwoNormIsEuclid(eye1[6] , eye1[2]);
 	double short_axis_C = calcTwoNormIsEuclid(eye1[5] , eye1[3]);
 	double long_axis_D = calcTwoNormIsEuclid(eye1[4],  eye1[0]);
-
 	double calc_ear = (short_axis_A + short_axis_B + short_axis_C) / (3.0 * long_axis_D);
 	return calc_ear;
+}
 
+
+double eyeAspectRatio_98landmarks_1(std::vector<cv::Point2f> eye1){
+
+	// double short_axis_A = calcTwoNormIsEuclid(eye1[7] , eye1[1]);
+	double short_axis_B = calcTwoNormIsEuclid(eye1[6] , eye1[2]);
+	// double short_axis_C = calcTwoNormIsEuclid(eye1[5] , eye1[3]);
+	double long_axis_D = calcTwoNormIsEuclid(eye1[4],  eye1[0]);
+	// double calc_ear = (short_axis_A + short_axis_B + short_axis_C) / (3.0 * long_axis_D);
+	double calc_ear = short_axis_B/ long_axis_D;
+	return calc_ear;
 }
 
 double calcTwoNormIsEuclid(cv::Point2f p1 ,cv::Point2f p2){
 
-
-	printf(" line453 \n");
 	double dist;
 
 
@@ -498,7 +506,7 @@ double calcTwoNormIsEuclid(cv::Point2f p1 ,cv::Point2f p2){
 
 	dist = sqrt(pow(int((p2.x - p1.x)),2) + pow(int((p2.y - p1.y)),2));	
 
-			printf(" line457 \n");
+	printf(" X =%d ,Y =%d \n",int((p2.x - p1.x)),int((p2.y - p1.y)));
 
 
 	// dist = sqrt(pow(2,2) + pow(2,2));	
