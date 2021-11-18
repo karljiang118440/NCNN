@@ -118,7 +118,7 @@ class GhostBottleneck(nn.Module):
 
 
 
-
+''' // PFLDInference for 
 
 class PFLDInference(nn.Module):
     def __init__(self):
@@ -229,6 +229,121 @@ class PFLDInference(nn.Module):
         pose = self.fc2_aux(aux)
 
         return pose, landmarks
+
+
+'''
+
+
+class PFLDInference(nn.Module):
+    def __init__(self,width_factor=0.5):
+        super(PFLDInference, self).__init__()
+
+        self.conv1 = nn.Conv2d(
+            3, int(64 * width_factor), kernel_size=3, stride=2, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(int(64 * width_factor))
+        self.relu = nn.ReLU(inplace=True)
+
+        self.conv2 = nn.Conv2d(
+            int(64 * width_factor), int(64 * width_factor), kernel_size=3, stride=1, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(int(64 * width_factor))
+        self.relu = nn.ReLU(inplace=True)
+
+
+        self.conv3_1 = GhostBottleneck(int(64 * width_factor), int(128 * width_factor), int(64 * width_factor), stride=2)
+
+        self.block3_2 = GhostBottleneck(int(64 * width_factor), int(128 * width_factor), int(64 * width_factor), stride=1)
+        self.block3_3 = GhostBottleneck(int(64 * width_factor), int(128 * width_factor), int(64 * width_factor), stride=1)
+        self.block3_4 = GhostBottleneck(int(64 * width_factor), int(128 * width_factor), int(64 * width_factor), stride=1)
+        self.block3_5 = GhostBottleneck(int(64 * width_factor), int(128 * width_factor), int(64 * width_factor), stride=1)
+
+        self.conv4_1 = GhostBottleneck(int(64 * width_factor), int(256 * width_factor), int(128 * width_factor), stride=2)
+
+        self.conv5_1 = GhostBottleneck(int(128 * width_factor), int(512 * width_factor), int(128 * width_factor), stride=1)
+        self.block5_2 = GhostBottleneck(int(128 * width_factor), int(512 * width_factor), int(128 * width_factor), stride=1)
+        self.block5_3 = GhostBottleneck(int(128 * width_factor), int(512 * width_factor), int(128 * width_factor), stride=1)
+        self.block5_4 = GhostBottleneck(int(128 * width_factor), int(512 * width_factor), int(128 * width_factor), stride=1)
+        self.block5_5 = GhostBottleneck(int(128 * width_factor), int(512 * width_factor), int(128 * width_factor), stride=1)
+        self.block5_6 = GhostBottleneck(int(128 * width_factor), int(512 * width_factor), int(128 * width_factor), stride=1)
+
+
+        self.conv6_1 = GhostBottleneck(int(128 * width_factor), int(256 * width_factor), int(16 * width_factor), stride=1)
+
+
+        # self.conv7 = Conv_Block(int(16 * 1), int(32 * 1), 3, 1, 1)
+        # self.conv8 = Conv_Block(int(32 * 1), int(128 * 1), 112 // 16, 1, 0, has_bn=False)
+
+
+        self.conv7 = conv_bn(int(16 * width_factor), int(32 * width_factor), 3, 2)
+        self.conv8 = nn.Conv2d(int(32 * width_factor), int(128 * width_factor), 7, 1, 0)
+
+        # self.avg_pool1 = AvgPool2d(128 // 2)
+        # self.avg_pool2 = AvgPool2d(128 // 4)
+        # self.avg_pool3 = AvgPool2d(128 // 8)
+        # self.avg_pool4 = AvgPool2d(128 // 16)
+
+        # self.fc = Linear(int(512 * 1), 98 * 2)
+
+        self.bn8 = nn.BatchNorm2d(int(128 * width_factor) )
+
+        self.avg_pool1 = nn.AvgPool2d(14* 1)
+        self.avg_pool2 = nn.AvgPool2d(7* 1)
+        self.fc = nn.Linear(int(176 * width_factor) , 196)
+        self.fc_aux = nn.Linear(int(176 * width_factor), 3)
+
+        self.conv1_aux = conv_bn(int(64 * width_factor) , int(128 * width_factor) , 3, 2)
+        self.conv2_aux = conv_bn(int(128 * width_factor) , int(128 * width_factor), 3, 1)
+        self.conv3_aux = conv_bn(int(128 * width_factor),int( 32 * width_factor), 3, 2)
+        self.conv4_aux = conv_bn(int(32 * width_factor),int(128 * width_factor) , 7, 1)
+        self.max_pool1_aux = nn.MaxPool2d(3)
+        self.fc1_aux = nn.Linear(int(128 * width_factor), int(32* width_factor))
+        self.fc2_aux = nn.Linear(int(32 * width_factor) + int(176 * width_factor), 3)
+
+
+
+    def forward(self, x):  # x: 3, 112, 112
+        x = self.relu(self.bn1(self.conv1(x)))  # [64, 56, 56]
+        x = self.relu(self.bn2(self.conv2(x)))  # [64, 56, 56]
+        x = self.conv3_1(x)
+        x = self.block3_2(x)
+        x = self.block3_3(x)
+        x = self.block3_4(x)
+        out1 = self.block3_5(x)
+
+        x = self.conv4_1(out1)
+        x = self.conv5_1(x)
+        x = self.block5_2(x)
+        x = self.block5_3(x)
+        x = self.block5_4(x)
+        x = self.block5_5(x)
+        x = self.block5_6(x)
+        x = self.conv6_1(x)
+        x1 = self.avg_pool1(x)
+        x1 = x1.view(x1.size(0), -1)
+
+        x = self.conv7(x)
+        x2 = self.avg_pool2(x)
+        x2 = x2.view(x2.size(0), -1)
+
+        x3 = self.relu(self.conv8(x))
+        x3 = x3.view(x1.size(0), -1)
+
+        multi_scale = torch.cat([x1, x2, x3], 1)
+        landmarks = self.fc(multi_scale)
+
+
+        aux = self.conv1_aux(out1)
+        aux = self.conv2_aux(aux)
+        aux = self.conv3_aux(aux)
+        aux = self.conv4_aux(aux)
+        aux = self.max_pool1_aux(aux)
+        aux = aux.view(aux.size(0), -1)
+        aux = self.fc1_aux(aux)
+        aux = torch.cat([aux, multi_scale], 1)
+        pose = self.fc2_aux(aux)
+
+        return pose, landmarks
+
+
 
 
 if __name__ == '__main__':
