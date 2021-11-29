@@ -17,7 +17,13 @@ input_img_size = 112  # define input size
 # model_path = "models/pretrained/checkpoint_robust.pth"
 
 
-model_path = "models/checkpoint/model-slim/checkpoint_epoch_60.pth"
+#model slim 0.5
+
+
+# model of slim :0.25 
+
+model_path = "/media/jcq/Soft/Pytorch/nniefacelib/PFPLD/models/checkpoint/model-Slim/checkpoint_epoch_24.pth"
+
 
 checkpoint = torch.load(model_path)
 net = PFLDInference()
